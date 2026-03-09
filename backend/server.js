@@ -28,6 +28,8 @@ const todoSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   title: { type: String, required: true },
   completed: { type: Boolean, default: false },
+  assignedAt: { type: Date, default: Date.now },
+  completedAt: { type: Date }
 });
 const Todo = mongoose.model('Todo', todoSchema);
 
@@ -84,6 +86,10 @@ app.post('/api/login', async (req, res) => {
 // 3. Get Todos
 app.get('/api/todos', authenticateToken, async (req, res) => {
   try {
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    await Todo.deleteMany({ userId: req.user.userId, assignedAt: { $lt: oneWeekAgo } });
+
     const todos = await Todo.find({ userId: req.user.userId });
     res.json(todos);
   } catch (err) {
@@ -108,9 +114,16 @@ app.post('/api/todos', authenticateToken, async (req, res) => {
 // 5. Update Todo (e.g. mark as completed)
 app.put('/api/todos/:id', authenticateToken, async (req, res) => {
   try {
+    const updateData = { completed: req.body.completed };
+    if (req.body.completed === true) {
+      updateData.completedAt = new Date();
+    } else if (req.body.completed === false) {
+      updateData.completedAt = null;
+    }
+
     const todo = await Todo.findOneAndUpdate(
       { _id: req.params.id, userId: req.user.userId },
-      { completed: req.body.completed },
+      updateData,
       { new: true }
     );
     if (!todo) return res.status(404).json({ message: 'Todo not found' });
