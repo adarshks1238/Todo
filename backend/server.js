@@ -49,6 +49,11 @@ const authenticateToken = (req, res, next) => {
 
 // Routes
 
+// Health Check
+app.get('/api', (req, res) => {
+  res.send('API is running correctly!');
+});
+
 // 1. Register
 app.post('/api/register', async (req, res) => {
   try {
